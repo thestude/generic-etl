@@ -1,0 +1,74 @@
+using System;
+using System.IO;
+using log4net;
+using System.Linq;
+using System.Text;
+using System.Data;
+using System.Collections;
+using System.Threading.Tasks;
+using System.Collections.Generic;
+using System.Data.SqlClient;
+
+
+[assembly: log4net.Config.XmlConfigurator(Watch = true)]
+
+namespace EMMA_ETL
+{
+    class Program
+    {
+       private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+
+        static void Main()
+        {
+            EMMADatabase db = new EMMADatabase(""); //set string to pass in based on App.config
+            CSVFileWriter csvWrite = new CSVFileWriter();
+            DataSource myDatasource = new DataSource();
+
+            try
+            {
+                SqlCommand cmd = new SqlCommand();
+                Hashtable Parameters = new Hashtable();
+                //Parameters.Add("@UserCredentials", UserCredentials);
+
+                DataTable result = db.Query("exec Metrics_ETL.dbo.uspDetermineQueriesToRunBasedOnSchedules", Parameters);
+                DataTable queriesToRun = db.Query("select QueryID from Metrics_ETL.dbo.QueriesToRun", Parameters);
+
+              
+                    foreach (DataRow row in queriesToRun.Rows)
+                    {
+                        Hashtable queryParameters = new Hashtable();
+                        queryParameters.Add("@QueryID", row["QueryID"]);
+                        DataTable queryDetails = db.Query("select QueryID, Query, ObjectID, DataSourceID, DatabaseName, ServerName, ServerType, UserName, Password from Metrics_ETL.dbo.Queries where QueryID = @QueryID", queryParameters);
+                       
+                        //TODO: Add a Try Catch Fail 
+                        //create datasource (destination) - query datasource - get data into a result datatable
+                        
+
+                        //queryDetails.Load(queryRead);
+                        
+                        
+                        log.Info(row["QueryID"]);
+                        Console.WriteLine(myDatasource);
+                        //Console.WriteLine(queryDetails);
+                        //write datatable to csv with correct filename (OR maybe C# can write to Excel)
+
+                        
+                    }
+                
+                
+                
+
+            }
+            catch(Exception e)
+            {
+                Console.WriteLine("Error: " + e);
+            }
+            finally
+            {
+                Console.Read();
+            }
+        }
+
+        
+    }
+}
