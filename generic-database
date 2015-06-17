@@ -1,0 +1,62 @@
+using System;
+using System.Data;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Data.SqlClient;
+using log4net;
+
+namespace EMMA_ETL
+{
+    public class EMMADatabase
+    {
+        private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+
+        SqlConnection dBConnection;
+
+        public EMMADatabase(string ServerName)
+        {
+
+            string databaseName = ServerName == "" ? "" : "";
+
+            this.dBConnection = new SqlConnection("Data Source=" + databaseName + ";Initial Catalog=Generic_EBT;Integrated Security=True");
+
+        }
+
+        ~EMMADatabase()
+        {
+            dBConnection.Close();
+        }
+
+
+        public DataTable Query(string queryString, Hashtable Parameters)
+        {
+            return queryToDataTable(queryString, Parameters);
+        }
+
+        private DataTable queryToDataTable(string queryString, Hashtable Parameters)
+        {
+            DataTable dt = new DataTable();
+
+            using (new Impersonator("persion", "person", "somename"))
+            {
+                SqlCommand cmd = new SqlCommand(queryString, dBConnection);
+                cmd.CommandTimeout = 120;
+
+                foreach (DictionaryEntry Parameter in Parameters)
+                {
+                    cmd.Parameters.Add((string)Parameter.Key, SqlDbType.NVarChar);
+                    cmd.Parameters[(string)Parameter.Key].Value = Parameter.Value;
+                   
+                }
+
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                da.Fill(dt);
+            }
+
+            return dt;
+        }
+    }
+}
